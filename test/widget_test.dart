@@ -59,7 +59,11 @@ void main() {
     test('grid column count adapts to width', () {
       expect(MyHomePage.gridColumnsFor(320), 2);
       expect(MyHomePage.gridColumnsFor(411), 3);
-      expect(MyHomePage.gridColumnsFor(1280), 4);
+    });
+
+    test('grid never has more columns than cards (no empty slot)', () {
+      expect(MyHomePage.gridColumnsFor(826), MyHomePage.items.length);
+      expect(MyHomePage.gridColumnsFor(1280), MyHomePage.items.length);
     });
 
     const sizes = {

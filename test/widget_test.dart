@@ -1,30 +1,89 @@
-// This is a basic Flutter widget test.
+// Widget tests for the MyPortfolio Mobile home screen (Assignment 7).
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Run with: flutter test
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:myportofolio_mobile/main.dart';
+import 'package:myportofolio_mobile/menu.dart';
+
+/// Sets the test window to [size] logical pixels and resets it after the test.
+void setScreenSize(WidgetTester tester, Size size) {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('shows the owner identity in three InfoCards', (tester) async {
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.byType(InfoCard), findsNWidgets(3));
+    expect(find.text(MyHomePage.npm), findsOneWidget);
+    expect(find.text(MyHomePage.nama), findsOneWidget);
+    expect(find.text(MyHomePage.kelas), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  testWidgets('each action card has a distinct background color', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    final colors = tester
+        .widgetList<Material>(
+          find.descendant(
+            of: find.byType(ItemCard),
+            matching: find.byType(Material),
+          ),
+        )
+        .map((material) => material.color)
+        .toList();
+
+    expect(colors, hasLength(MyHomePage.items.length));
+    expect(colors.toSet(), hasLength(colors.length));
+  });
+
+  for (final item in MyHomePage.items) {
+    testWidgets('tapping ${item.name} shows its SnackBar', (tester) async {
+      await tester.pumpWidget(const MyApp());
+
+      await tester.tap(find.text(item.name));
+      await tester.pump();
+
+      expect(find.text('You pressed the ${item.name} button!'), findsOneWidget);
+    });
+  }
+
+  group('responsive layout', () {
+    test('grid column count adapts to width', () {
+      expect(MyHomePage.gridColumnsFor(320), 2);
+      expect(MyHomePage.gridColumnsFor(411), 3);
+      expect(MyHomePage.gridColumnsFor(1280), 4);
+    });
+
+    const sizes = {
+      'small phone': Size(320, 568),
+      'phone': Size(411, 891),
+      'phone landscape': Size(891, 411),
+      'desktop': Size(1280, 800),
+    };
+
+    sizes.forEach((label, size) {
+      testWidgets('renders without overflow on $label', (tester) async {
+        setScreenSize(tester, size);
+        await tester.pumpWidget(const MyApp());
+
+        // A RenderFlex overflow would surface here as an exception.
+        expect(tester.takeException(), isNull);
+
+        // The last card stays reachable by scrolling.
+        await tester.ensureVisible(find.text('Logout'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Logout'));
+        await tester.pump();
+        expect(find.text('You pressed the Logout button!'), findsOneWidget);
+      });
+    });
   });
 }

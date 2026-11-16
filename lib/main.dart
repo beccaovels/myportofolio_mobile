@@ -5,10 +5,14 @@ void main() {
   runApp(const MyApp());
 }
 
+/// Root widget of MyPortfolio Mobile.
+///
+/// [MaterialApp] provides the app-wide theme (indigo seed color with an
+/// amber secondary), navigation, and Material defaults that every screen
+/// inherits through [BuildContext].
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,7 +24,7 @@ class MyApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: MyHomePage(),
+      home: const MyHomePage(),
     );
   }
 }

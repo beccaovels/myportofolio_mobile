@@ -1,28 +1,39 @@
 import 'package:material_ui/material_ui.dart';
 
+/// Home screen of MyPortfolio Mobile.
+///
+/// Shows the portfolio owner's identity as three [InfoCard]s, a greeting,
+/// and a grid of [ItemCard] action buttons. It is a [StatelessWidget]
+/// because everything it displays is fixed at build time; the only
+/// interaction (a SnackBar) is handled by [ScaffoldMessenger], not by
+/// state stored in this widget.
 class MyHomePage extends StatelessWidget {
-  MyHomePage({super.key});
+  const MyHomePage({super.key});
 
-  final String npm = "2506637110";
-  final String nama = "Rebecca Love Lianov Simanjuntak";
-  final String kelas = "KI";
+  /// Student ID (NPM) of the portfolio owner.
+  static const String npm = "2506637110";
 
-  final List<ItemHomepage> items = [
+  /// Full name of the portfolio owner.
+  static const String nama = "Rebecca Love Lianov Simanjuntak";
+
+  /// PBP class of the portfolio owner.
+  static const String kelas = "KI";
+
+  /// Action buttons shown in the grid, each with its own background color.
+  /// Declared `const` so the list is created once at compile time.
+  static const List<ItemHomepage> items = [
     ItemHomepage("View Projects", Icons.folder, Colors.blue),
     ItemHomepage("Add Project", Icons.add_circle, Colors.green),
     ItemHomepage("Logout", Icons.logout, Colors.red),
   ];
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'MyPortfolio',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
@@ -42,9 +53,15 @@ class MyHomePage extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(child: InfoCard(title: 'NPM', content: npm)),
-                      Expanded(child: InfoCard(title: 'Name', content: nama)),
-                      Expanded(child: InfoCard(title: 'Class', content: kelas)),
+                      const Expanded(
+                        child: InfoCard(title: 'NPM', content: npm),
+                      ),
+                      const Expanded(
+                        child: InfoCard(title: 'Name', content: nama),
+                      ),
+                      const Expanded(
+                        child: InfoCard(title: 'Class', content: kelas),
+                      ),
                     ],
                   ),
                 ),
@@ -100,9 +117,16 @@ class MyHomePage extends StatelessWidget {
   }
 }
 
+/// A small elevated card showing one piece of owner information,
+/// e.g. `title: 'NPM'` with `content: '2506637110'`.
+///
+/// It takes its width from the parent (an [Expanded] on the home screen),
+/// so long [content] such as a full name wraps instead of overflowing.
 class InfoCard extends StatelessWidget {
-  // Information card displaying a title and its associated content.
+  /// Bold label shown at the top of the card.
   final String title;
+
+  /// Value shown under [title].
   final String content;
 
   const InfoCard({super.key, required this.title, required this.content});
@@ -117,10 +141,7 @@ class InfoCard extends StatelessWidget {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8.0),
             Text(content, textAlign: TextAlign.center),
           ],
@@ -130,15 +151,30 @@ class InfoCard extends StatelessWidget {
   }
 }
 
+/// Data model for one action button on the home screen.
+///
+/// Keeping the [color] here (instead of if-else logic inside [ItemCard])
+/// means adding a new button only requires a new entry in
+/// [MyHomePage.items].
 class ItemHomepage {
+  /// Label shown on the card and used in the SnackBar message.
   final String name;
+
+  /// Icon shown above the label.
   final IconData icon;
+
+  /// Background color of the card; each item uses a distinct color.
   final Color color;
 
-  ItemHomepage(this.name, this.icon, this.color);
+  const ItemHomepage(this.name, this.icon, this.color);
 }
 
+/// A tappable, colored card that renders one [ItemHomepage].
+///
+/// Tapping it replaces any visible SnackBar with
+/// `"You pressed the [name] button!"`, using the item's name.
 class ItemCard extends StatelessWidget {
+  /// The action this card represents.
   final ItemHomepage item;
 
   const ItemCard(this.item, {super.key});
@@ -150,10 +186,11 @@ class ItemCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: () {
+          // hideCurrentSnackBar first so rapid taps don't queue messages.
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
             ..showSnackBar(
-              SnackBar(content: Text("You pressed the ${item.name} button!"))
+              SnackBar(content: Text("You pressed the ${item.name} button!")),
             );
         },
         child: Container(
@@ -165,11 +202,7 @@ class ItemCard extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  item.icon,
-                  color: Colors.white,
-                  size: 30.0,
-                ),
+                Icon(item.icon, color: Colors.white, size: 30.0),
                 const Padding(padding: EdgeInsets.all(3)),
                 Text(
                   item.name,

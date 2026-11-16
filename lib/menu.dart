@@ -26,56 +26,77 @@ class MyHomePage extends StatelessWidget {
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: Padding(
+      // Scrollable so nothing overflows on short screens or in landscape.
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Horizontal row showing 3 InfoCards.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Center(
+          // Caps the content width so it stays readable on web/tablet.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: maxContentWidth),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                InfoCard(title: 'NPM', content: npm),
-                InfoCard(title: 'Name', content: nama),
-                InfoCard(title: 'Class', content: kelas),
-              ],
-            ),
+                // Row of 3 InfoCards sharing the width equally; IntrinsicHeight
+                // keeps them the same height when a long name wraps.
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: InfoCard(title: 'NPM', content: npm)),
+                      Expanded(child: InfoCard(title: 'Name', content: nama)),
+                      Expanded(child: InfoCard(title: 'Class', content: kelas)),
+                    ],
+                  ),
+                ),
 
-            const SizedBox(height: 16.0),
+                const SizedBox(height: 16.0),
 
-            // Greeting and 3-column action grid.
-            Center(
-              child: Column(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16.0),
-                    child: Text(
-                      'Welcome to MyPortfolio Mobile!',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.0,
-                      ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 16.0),
+                  child: Text(
+                    'Welcome to MyPortfolio Mobile!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.0,
                     ),
                   ),
+                ),
 
-                  GridView.count(
-                    primary: true,
-                    padding: const EdgeInsets.all(20),
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    crossAxisCount: 3,
-                    shrinkWrap: true,
-                    children: items.map((ItemHomepage item) {
-                      return ItemCard(item);
-                    }).toList(),
-                  ),
-                ],
-              ),
+                // Action grid whose column count adapts to the available width.
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return GridView.count(
+                      // The outer SingleChildScrollView handles scrolling.
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(20),
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      crossAxisCount: gridColumnsFor(constraints.maxWidth),
+                      children: items.map((ItemHomepage item) {
+                        return ItemCard(item);
+                      }).toList(),
+                    );
+                  },
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  /// Maximum width of the page content on wide screens (web, tablet).
+  static const double maxContentWidth = 800;
+
+  /// Returns how many action-card columns fit in [width]:
+  /// 2 on very narrow phones, 3 on regular phones, 4 on tablets/web.
+  static int gridColumnsFor(double width) {
+    if (width < 360) return 2;
+    if (width < 600) return 3;
+    return 4;
   }
 }
 
@@ -90,9 +111,10 @@ class InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2.0,
-      child: Container(
-        width: MediaQuery.of(context).size.width / 3.5,
-        padding: const EdgeInsets.all(16.0),
+      // Width comes from the parent (Expanded), so long text wraps
+      // instead of overflowing on narrow screens.
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
             Text(
@@ -100,7 +122,7 @@ class InfoCard extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8.0),
-            Text(content),
+            Text(content, textAlign: TextAlign.center),
           ],
         ),
       ),
@@ -136,7 +158,10 @@ class ItemCard extends StatelessWidget {
         },
         child: Container(
           padding: const EdgeInsets.all(8),
-          child: Center(
+          // scaleDown shrinks the icon+label only when the card is too small
+          // (narrow screens, large accessibility text) instead of overflowing.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

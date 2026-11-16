@@ -110,10 +110,19 @@ class MyHomePage extends StatelessWidget {
 
   /// Returns how many action-card columns fit in [width]:
   /// 2 on very narrow phones, 3 on regular phones, 4 on tablets/web.
+  ///
+  /// The result never exceeds the number of [items], so wide screens don't
+  /// leave an empty slot next to the last card (3 cards fill 3 columns).
   static int gridColumnsFor(double width) {
-    if (width < 360) return 2;
-    if (width < 600) return 3;
-    return 4;
+    final int columns;
+    if (width < 360) {
+      columns = 2;
+    } else if (width < 600) {
+      columns = 3;
+    } else {
+      columns = 4;
+    }
+    return columns.clamp(1, items.length);
   }
 }
 

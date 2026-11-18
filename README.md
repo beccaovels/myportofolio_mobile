@@ -133,7 +133,7 @@ I gave the AI clear context and goals at the start, then guided it with short fo
 | README | `README.md` | Drafted the project overview, setup, structure, weekly progress and reflective answers (template only for reflective) |
 
 ### Prompt Log
-Link : 
+Link : https://claude.ai/share/e18f44c2-f338-47e5-80f7-91e0b75ae41c
 
 ### Limitations of the AI
 

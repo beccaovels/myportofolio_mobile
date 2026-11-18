@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:myportofolio_mobile/project_form.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 
 /// Home screen of MyPortfolio Mobile.
@@ -184,7 +185,8 @@ class ItemHomepage {
 /// A tappable, colored card that renders one [ItemHomepage].
 ///
 /// Tapping it replaces any visible SnackBar with
-/// `"You pressed the [name] button!"`, using the item's name.
+/// `"You pressed the [name] button!"`, using the item's name, and the
+/// "Add Project" card also opens [ProjectFormPage].
 class ItemCard extends StatelessWidget {
   /// The action this card represents.
   final ItemHomepage item;
@@ -204,6 +206,14 @@ class ItemCard extends StatelessWidget {
             ..showSnackBar(
               SnackBar(content: Text("You pressed the ${item.name} button!")),
             );
+
+          // push (not pushReplacement) so Back returns to the home screen.
+          if (item.name == "Add Project") {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProjectFormPage()),
+            );
+          }
         },
         child: Container(
           padding: const EdgeInsets.all(8),

@@ -1,12 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/screens/menu.dart';
-import 'package:myportofolio_mobile/screens/project_form.dart';
 
 /// A tappable, colored card that renders one [ItemHomepage].
 ///
 /// Tapping it replaces any visible SnackBar with
-/// `"You pressed the [name] button!"`, using the item's name, and the
-/// "Add Project" card also opens [ProjectFormPage].
+/// `"You pressed the [name] button!"`, using the item's name. If the item
+/// has a [ItemHomepage.destination] (e.g. the Add Project or Add Education
+/// form), that screen is also opened on top of the home screen.
 class ItemCard extends StatelessWidget {
   /// The action this card represents.
   final ItemHomepage item;
@@ -27,11 +27,13 @@ class ItemCard extends StatelessWidget {
               SnackBar(content: Text("You pressed the ${item.name} button!")),
             );
 
-          // push (not pushReplacement) so Back returns to the home screen.
-          if (item.name == "Add Project") {
+          // push (not pushReplacement) keeps the home screen underneath,
+          // so the system Back button returns to it.
+          final destination = item.destination;
+          if (destination != null) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ProjectFormPage()),
+              MaterialPageRoute(builder: (context) => destination),
             );
           }
         },

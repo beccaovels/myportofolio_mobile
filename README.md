@@ -11,10 +11,13 @@ A Flutter mobile app for my personal portfolio. It is the mobile companion to th
 ## Features
 
 - **Owner identity:** three information cards showing my NPM, full name and PBP class.
-- **Action menu:** View Projects (blue), Add Project (green) and Logout (red), each with its own icon and color.
+- **Action menu:** View Projects (blue), Add Project (green), Add Education (teal) and Logout (red), each with its own icon and color.
 - **Interactive feedback:** tapping a card shows a SnackBar saying `You pressed the [Button Name] button!`.
-- **Responsive layout:** the page scrolls on short screens, the information cards share the width equally so long text wraps, the action grid switches between 2, 3 and 4 columns depending on screen width, and on web or tablet the content is centered with a maximum width.
-- **Tested:** widget tests cover the identity cards, card colors, SnackBars, and layout at four screen sizes.
+- **Navigation drawer:** one shared `LeftDrawer` on every page with Home, Add Project and Add Education.
+- **Add Project form** (Tutorial 09): name, description, category, technologies and link, with a summary dialog.
+- **Add Education form** (Assignment 8): fields that mirror the `Education` model of my Django portfolio (institution, program, level, description, logo URL, start date, end date or "currently studying"). Inputs are validated (required, whitespace-only, length limits, URL format, date order) and a summary dialog shows the saved values.
+- **Responsive layout:** the pages scroll on short screens, the information cards share the width equally so long text wraps, the action grid switches between 2, 3 and 4 columns depending on screen width, and on web or tablet the content is centered with a maximum width.
+- **Tested:** 25 tests cover the home screen, the form validators, navigation from the card and the drawer, validation errors, the summary dialog, and small-screen layout.
 
 ## Tech Stack
 
@@ -50,11 +53,28 @@ flutter test      # expected: All tests passed!
 
 ```
 lib/
-├── main.dart        # Entry point: runApp + MaterialApp (theme, home screen)
-└── menu.dart        # Home screen: MyHomePage, InfoCard, ItemHomepage, ItemCard
+├── main.dart                  # Entry point: runApp + MaterialApp (theme, home screen)
+├── screens/
+│   ├── menu.dart              # Home screen: MyHomePage, InfoCard, ItemHomepage
+│   ├── project_form.dart      # Add Project form (Tutorial 09)
+│   └── education_form.dart    # Add Education form (Assignment 8)
+├── widgets/
+│   ├── left_drawer.dart       # Shared navigation drawer
+│   └── project_card.dart      # ItemCard: colored action card on the home screen
+└── utils/
+    └── form_validators.dart   # Reusable validators + date formatting
 test/
-└── widget_test.dart # Widget tests for the home screen
+├── widget_test.dart           # Home screen tests
+└── education_form_test.dart   # Validator, navigation, validation and dialog tests
 ```
+
+### How to try the Assignment 8 features
+
+1. Run the app and tap **Add Education** on the home screen, or open the drawer (☰) and choose **Add Education**.
+2. Press **Save** with the form empty: an error appears under each required field.
+3. Fill it in. Try a logo URL without `https://`, or an end date before the start date, to see those errors.
+4. Press **Save** again: a dialog lists everything you entered. **OK** closes it and returns to the form.
+5. Use the device's Back button (when opened from the card) or the drawer's **Home** to go back to the home screen.
 
 ## Weekly Progress
 
@@ -62,7 +82,8 @@ test/
 |---|---|---|
 | Tutorial 08 | Basic Flutter | Project setup, split `menu.dart` from `main.dart`, `MyHomePage` as a `StatelessWidget`, `InfoCard` and `ItemCard` |
 | Assignment 7 | Basic Flutter for my own portfolio | Own identity, a distinct color per action card, responsive layout, `material_ui` migration, docstrings, widget tests |
-| Tutorial 09 / Assignment 8 | Navigation, layouts, forms and input elements | *Coming next* |
+| Tutorial 09 | Navigation, layouts, forms and input elements | `LeftDrawer`, Add Project form with validation and a result dialog, `screens/` and `widgets/` folders |
+| Assignment 8 | A new form for my own portfolio | Add Education form based on my Django `Education` model, date pickers, URL and date-order validation, drawer and action-card navigation, Home stack fix, reusable validators, 13 new tests |
 
 ## Reflective Questions
 
@@ -111,17 +132,44 @@ test/
 
    For those, I need a hot restart. If I add a new package or plugin, edit native Android/iOS code, or change the assets in `pubspec.yaml`, I need a full restart.
 
+### Assignment 8
+
+1. **Explain the differences between `Navigator.push()`, `Navigator.pushReplacement()`, and `Navigator.pop()`. Which method opens the form from the action card? Explain how the Home option in the drawer takes the user back to the home screen.**
+   Flutter keeps pages in a stack. `Navigator.push()` puts a new page on top and keeps the old one underneath, so you can go back to it. `Navigator.pushReplacement()` also shows a new page, but it removes the current one first, so there's nothing to go back to on that page. `Navigator.pop()` removes the top page and shows whatever was under it. The system Back button and the dialog's **OK** button both work this way.
+
+   The **Add Education** action card uses `Navigator.push()`. The stack becomes `[Home, Education form]`, which is why the device's Back button takes me home. In the drawer, **Add Project** and **Add Education** use `pushReplacement()`, so switching between forms doesn't keep piling up pages. For **Home**, Tutorial 09 used `pushReplacement()`, but I found a problem with it. If I opened the form from the card (`[Home, Form]`) and then chose Home in the drawer, the form got replaced by a *new* Home, so the stack became `[Home, Home]` and a back arrow appeared on the home screen. I changed Home to `Navigator.pushAndRemoveUntil(..., (route) => false)`. It pushes the home screen and removes every page under it, so Home is always the only page again.
+
+2. **How does the arrangement of `Scaffold`, `AppBar`, and `Drawer` keep the page structure consistent? Give one example of the portfolio theme colors being used on more than one page.**
+   Every page uses the same skeleton: a `Scaffold` with an `AppBar` at the top, the same `drawer: const LeftDrawer()`, and the content in `body`. Because the drawer is a single widget in `lib/widgets/left_drawer.dart`, adding the Add Education option there automatically added it on all three pages. The AppBar always sits in the same place with the title and the ☰ button, so the app feels like one app instead of separate screens.
+
+   For colors, the theme is set once in `MaterialApp` (`ColorScheme.fromSeed(seedColor: Colors.indigo)`), and the pages read it with `Theme.of(context).colorScheme.primary`. That same primary color is used for the home AppBar, the Add Project AppBar and Save button, the Add Education AppBar and Save button, and the drawer header. Tutorial 09 had `Colors.indigo` hard-coded in the project form and the drawer, so I switched those to the theme color too. If I ever change the seed color, every page changes together.
+
+3. **Why was this layout chosen for the form? Explain what the spacing and scrolling widgets do when screen space is limited.**
+   The form is one column of full-width fields, in the same order as the fields in my Django `Education` model, with the Save button at the bottom. On a phone, one field per row is easier to read and tap than a side-by-side layout. The widgets I used:
+   - `SingleChildScrollView`: the form is taller than a small phone screen, and when the keyboard opens the `Scaffold` shrinks the body even more. Without scrolling, the bottom fields and the Save button would get cut off with an overflow error. With it, the user can always scroll down to Save. My test checks this on a 320×568 screen.
+   - `Center` + `ConstrainedBox(maxWidth: 800)`: on Chrome or a tablet the fields would stretch across the whole screen, so I cap the width like on the home screen.
+   - `SizedBox(height: 16)` and `padding`: give even spacing between fields so the labels and error messages don't touch each other.
+   - `isExpanded: true` on the dropdown: it makes the dropdown fill the field width instead of sizing itself to the longest item. Without it, the form overflowed by 14 pixels on a 320px-wide phone.
+
+4. **What roles do `GlobalKey<FormState>`, `validator`, and `validate()` play when Save is pressed? Give one example of a value the form rejects and explain why choosing an input widget or keyboard type alone is insufficient.**
+   `GlobalKey<FormState>` is attached to the `Form`, and it lets the Save button reach the form's state from outside the fields. Each field has a `validator` function that returns `null` if the value is fine, or an error message if it isn't. When Save is pressed, `_formKey.currentState!.validate()` runs every field's validator at once and shows each error message under its field. It returns `true` only if all of them passed, and only then do I open the summary dialog.
+
+   One example of a rejected value is a logo URL like `ui.ac.id` (or `ftp://ui.ac.id`). It's rejected because my Django `URLField` expects a full `http://` or `https://` URL. I set `keyboardType: TextInputType.url` on that field, but that only changes which keyboard pops up (it adds `/` and `.com` keys). It doesn't stop anyone from typing or pasting anything they want, and on Chrome there's no special keyboard at all. In the same way, a date picker makes sure the date *format* is right, but it can't know that my end date must not be before my start date. Only a validator can check rules like that, so I use the `optionalUrl` and `endDateAfterStart` functions in `lib/utils/form_validators.dart`.
+
 ## AI Disclosure
 
 ### Tools Used
 
 | Tool | Version / Model | Used for |
 |---|---|---|
-| Claude App | Claude Opus 5.5 | Refactoring the Flutter code, writing widget tests, running `flutter analyze` / `flutter test`, and drafting the README |
+| Claude App | Claude Opus 5.5 | Assignment 7: refactoring the Flutter code, writing widget tests, running `flutter analyze` / `flutter test`, and drafting the README |
+| Claude Code (VS Code extension) | Claude Opus 5.5 | Assignment 8: planning, the Education form, navigation changes, tests and the README draft |
 
 ### Prompt Strategy
 
 I gave the AI clear context and goals at the start, then guided it with short follow-up prompts and specific feedback until the result was what I wanted.
+
+For Assignment 8, I first gave the AI the assignment PDF and had it **plan only** (no code) and explain my project and what would change. I made the key decisions myself: Education as the section (so the fields match my Django `Education` model), and a `feat/assignment-8` branch off `tutor/9`. I told it to use conventional commits and **not** to commit, push or add itself as co-author, so every commit is mine. After the plan was approved, it implemented the plan, and I reviewed the diff, ran the app in Chrome and committed in small steps.
 
 ### AI-Assisted Parts
 
@@ -131,9 +179,15 @@ I gave the AI clear context and goals at the start, then guided it with short fo
 | Responsive layout | `lib/menu.dart` | Added `SingleChildScrollView`, `Expanded`, `IntrinsicHeight`, `LayoutBuilder`, `ConstrainedBox` and `FittedBox` | Chose this as my extra feature, tested in Chrome |
 | Widget tests | `test/widget_test.dart` | Replaced the broken counter test with 10 home-screen tests | Reviewed and committed |
 | README | `README.md` | Drafted the project overview, setup, structure, weekly progress and reflective answers (template only for reflective) |
+| Education form (A8) | `lib/screens/education_form.dart` | Wrote the form with date pickers, the ongoing switch and the summary dialog | Chose Education and matched the fields to my Django model, tested it in Chrome |
+| Validators (A8) | `lib/utils/form_validators.dart` | Moved the validation rules into small reusable functions | Reviewed the rules against my model (255 limit, URL, dates) |
+| Navigation (A8) | `lib/screens/menu.dart`, `lib/widgets/project_card.dart`, `lib/widgets/left_drawer.dart` | Added the card and drawer option, replaced the `if (name == ...)` check with a `destination` field, changed Home to `pushAndRemoveUntil` | Checked the back and Home flows on Chrome |
+| Tests (A8) | `test/education_form_test.dart` | Wrote 13 tests for validators, navigation, errors, the dialog and small screens | Ran `flutter test` and `flutter analyze` |
+| README (A8) | `README.md` | Drafted the structure, weekly progress and Assignment 8 answers | Rewrote the answers in my own words |
 
 ### Prompt Log
-Link : https://claude.ai/share/e18f44c2-f338-47e5-80f7-91e0b75ae41c
+- Assignment 7: https://claude.ai/share/e18f44c2-f338-47e5-80f7-91e0b75ae41c
+- Assignment 8: *(add your Claude Code session share link / exported log here)*
 
 ### Limitations of the AI
 
@@ -143,3 +197,10 @@ Link : https://claude.ai/share/e18f44c2-f338-47e5-80f7-91e0b75ae41c
 - **Some of its claims were unverified.** It said replacing `SingleChildScrollView` with `Padding` would make both the small-phone and landscape tests fail, but it never checked that. It also said passing tests print a ✓, but `flutter test` actually shows counters like `+10: All tests passed!`.
 
 All these limitations, I fixed it myself.
+
+**Assignment 8:**
+
+- **Its first tests failed, and some of the failures were its own mistakes.** Three tests failed on the first run. Two came from the tests themselves: the "You pressed the button" SnackBar was covering the Save button, and on a small screen the action card was below the fold, so the tap missed. The test had to dismiss the SnackBar and scroll first.
+- **It missed real layout bugs until the tests caught them.** The level dropdown overflowed by 14 pixels on a 320px phone because it sized itself to "Middle School" (fixed with `isExpanded: true`). The Tutorial 09 `DrawerHeader` has a fixed height, so with bigger text the title overflowed (replaced with a `Container` that grows with its content). Neither showed up in its plan.
+- **It never ran the app itself.** It only checked its work with `flutter analyze` and widget tests (which use a fake test font, not a real browser), so I still had to run the app in Chrome and try every flow by hand: card, drawer, Back, Home, empty Save, valid Save.
+- **The reflective answers are a draft.** They describe its own changes, so I checked each claim against the code and rewrote them in my own words.

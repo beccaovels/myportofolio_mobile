@@ -1,4 +1,6 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:myportofolio_mobile/screens/education_form.dart';
+import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/widgets/project_card.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 
@@ -25,7 +27,18 @@ class MyHomePage extends StatelessWidget {
   /// Declared `const` so the list is created once at compile time.
   static const List<ItemHomepage> items = [
     ItemHomepage("View Projects", Icons.folder, Colors.blue),
-    ItemHomepage("Add Project", Icons.add_circle, Colors.green),
+    ItemHomepage(
+      "Add Project",
+      Icons.add_circle,
+      Colors.green,
+      destination: ProjectFormPage(),
+    ),
+    ItemHomepage(
+      "Add Education",
+      Icons.school,
+      Colors.teal,
+      destination: EducationFormPage(),
+    ),
     ItemHomepage("Logout", Icons.logout, Colors.red),
   ];
 
@@ -166,9 +179,9 @@ class InfoCard extends StatelessWidget {
 
 /// Data model for one action button on the home screen.
 ///
-/// Keeping the [color] here (instead of if-else logic inside [ItemCard])
-/// means adding a new button only requires a new entry in
-/// [MyHomePage.items].
+/// Keeping the [color] and [destination] here (instead of if-else logic
+/// on the name inside [ItemCard]) means adding a new button only requires
+/// a new entry in [MyHomePage.items].
 class ItemHomepage {
   /// Label shown on the card and used in the SnackBar message.
   final String name;
@@ -179,5 +192,9 @@ class ItemHomepage {
   /// Background color of the card; each item uses a distinct color.
   final Color color;
 
-  const ItemHomepage(this.name, this.icon, this.color);
+  /// Screen opened with `Navigator.push` when the card is tapped, or
+  /// `null` if the card only shows a SnackBar.
+  final Widget? destination;
+
+  const ItemHomepage(this.name, this.icon, this.color, {this.destination});
 }

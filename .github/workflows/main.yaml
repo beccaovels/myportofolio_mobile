@@ -45,10 +45,20 @@ jobs:
 
       # API_BASE_URL is a repository variable (Settings > Secrets and
       # variables > Actions > Variables) pointing to the deployed Django
-      # backend. It must not be empty: an empty value would override the
-      # default in lib/config.dart.
+      # backend. Whitespace (e.g. a pasted trailing newline) is stripped, and
+      # the build stops early if the variable is missing, because an empty
+      # value would override the default in lib/config.dart.
       - name: Build release APK
-        run: flutter build apk --release --dart-define=API_BASE_URL=${{ vars.API_BASE_URL }}
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: |
+          API_BASE_URL="$(printf '%s' "$API_BASE_URL" | tr -d '[:space:]')"
+          if [ -z "$API_BASE_URL" ]; then
+            echo "::error::Repository variable API_BASE_URL is not set."
+            exit 1
+          fi
+          echo "Building with API_BASE_URL=$API_BASE_URL"
+          flutter build apk --release --dart-define=API_BASE_URL="$API_BASE_URL"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

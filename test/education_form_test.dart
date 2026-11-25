@@ -12,6 +12,8 @@ import 'package:myportofolio_mobile/screens/education_form.dart';
 import 'package:myportofolio_mobile/screens/menu.dart';
 import 'package:myportofolio_mobile/utils/form_validators.dart';
 
+import 'test_helpers.dart';
+
 /// Opens the drawer of the currently visible Scaffold.
 Future<void> openDrawer(WidgetTester tester) async {
   await tester.tap(find.byTooltip('Open navigation menu'));
@@ -20,7 +22,7 @@ Future<void> openDrawer(WidgetTester tester) async {
 
 /// Starts the app and opens the Education form from its action card.
 Future<void> openFormFromCard(WidgetTester tester) async {
-  await tester.pumpWidget(const MyApp());
+  await tester.pumpWidget(MyApp(apiClient: FakeBackend().apiClient));
   // On small screens the card is below the fold, so scroll to it first.
   await tester.ensureVisible(find.text('Add Education'));
   await tester.pumpAndSettle();
@@ -116,11 +118,11 @@ void main() {
     });
 
     testWidgets('drawer option opens the Education form', (tester) async {
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(apiClient: FakeBackend().apiClient));
       await openDrawer(tester);
 
       expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Add Project'), findsWidgets);
+      expect(find.text('Add Experience'), findsWidgets);
       await tester.tap(find.widgetWithText(ListTile, 'Add Education'));
       await tester.pumpAndSettle();
 

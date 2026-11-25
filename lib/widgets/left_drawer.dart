@@ -1,20 +1,27 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/screens/education_form.dart';
+import 'package:myportofolio_mobile/screens/experience_form.dart';
+import 'package:myportofolio_mobile/screens/experience_list_screen.dart';
+import 'package:myportofolio_mobile/screens/login_screen.dart';
 import 'package:myportofolio_mobile/screens/menu.dart';
-import 'package:myportofolio_mobile/screens/project_form.dart';
+import 'package:myportofolio_mobile/services/auth_state.dart';
+import 'package:myportofolio_mobile/widgets/auth_guard.dart';
+import 'package:provider/provider.dart';
 
-/// Side navigation drawer shared by every screen (home, Add Project and
-/// Add Education), so the app has one consistent way to move between pages.
+/// Side navigation drawer shared by every screen, so the app has one
+/// consistent way to move between pages.
 ///
 /// - **Home** clears the navigation stack and makes [MyHomePage] the only
 ///   route again, so there is never a stray Back arrow on the home screen.
-/// - **Add Project** / **Add Education** replace the current page with the
-///   chosen form, so switching forms through the drawer doesn't pile up
-///   routes.
+/// - **View Experience** / **Add Experience** / **Add Education** replace
+///   the current page, so switching pages through the drawer doesn't pile
+///   up routes. **Add Experience** asks the user to log in first.
+/// - **Login** or **Logout** is shown depending on [AuthState]; the drawer
+///   rebuilds automatically because it watches [AuthState].
 class LeftDrawer extends StatelessWidget {
   const LeftDrawer({super.key});
 
-  /// Replaces the current route with [page]. Used for the form options.
+  /// Replaces the current route with [page]. Used for the page options.
   void _replaceWith(BuildContext context, Widget page) {
     Navigator.pushReplacement(
       context,
@@ -22,8 +29,37 @@ class LeftDrawer extends StatelessWidget {
     );
   }
 
+  /// Guarded option: log in first if needed, then open [page].
+  Future<void> _replaceIfLoggedIn(BuildContext context, Widget page) async {
+    if (!await ensureLoggedIn(context) || !context.mounted) return;
+    _replaceWith(context, page);
+  }
+
+  /// Closes the drawer, then opens the login screen.
+  void _login(BuildContext context) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(MaterialPageRoute(builder: (_) => const LoginScreen()));
+  }
+
+  /// Closes the drawer, revokes the token and confirms with a SnackBar.
+  Future<void> _logout(BuildContext context) async {
+    final auth = context.read<AuthState>();
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.pop(context);
+    await auth.logout();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('You have been logged out.')),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // watch (not read): rebuild the drawer when the user logs in or out.
+    final isLoggedIn = context.watch<AuthState>().isLoggedIn;
+
     return Drawer(
       child: ListView(
         children: [
@@ -74,15 +110,34 @@ class LeftDrawer extends StatelessWidget {
             },
           ),
           ListTile(
+            leading: const Icon(Icons.work_outline),
+            title: const Text('View Experience'),
+            onTap: () => _replaceWith(context, const ExperienceListScreen()),
+          ),
+          ListTile(
             leading: const Icon(Icons.add_circle_outline),
-            title: const Text('Add Project'),
-            onTap: () => _replaceWith(context, const ProjectFormPage()),
+            title: const Text('Add Experience'),
+            onTap: () =>
+                _replaceIfLoggedIn(context, const ExperienceFormPage()),
           ),
           ListTile(
             leading: const Icon(Icons.school_outlined),
             title: const Text('Add Education'),
             onTap: () => _replaceWith(context, const EducationFormPage()),
           ),
+          const Divider(),
+          if (isLoggedIn)
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: const Text('Logout'),
+              onTap: () => _logout(context),
+            )
+          else
+            ListTile(
+              leading: const Icon(Icons.login),
+              title: const Text('Login'),
+              onTap: () => _login(context),
+            ),
         ],
       ),
     );

@@ -11,8 +11,11 @@ A Flutter mobile app for my personal portfolio. It is the mobile companion to th
 ## Features
 
 - **Owner identity:** three information cards showing my NPM, full name and PBP class.
-- **Action menu:** View Projects (blue), Add Project (green) and Logout (red), each with its own icon and color.
+- **Action menu:** View Experience (blue), Add Experience (green), Add Education (teal) and Logout (red), each with its own icon and color.
 - **Interactive feedback:** tapping a card shows a SnackBar saying `You pressed the [Button Name] button!`.
+- **Live data from Django (Tutorial 10):** the experience list and detail screens load real data from my Django REST API (`GET /api/v1/experience/`), with loading, error (Retry) and empty states and pull-to-refresh.
+- **Token login (Tutorial 10):** logging in exchanges my Django username and password for a token (`POST /api/v1/auth/token/`). Adding an experience is protected: if I'm not logged in, the app asks me to log in first, then posts the form with `Authorization: Token <key>`. Logout revokes the token on the server.
+- **CI/CD (Tutorial 10):** GitHub Actions checks formatting, runs `flutter analyze` and the tests, then builds a release APK that can be downloaded from the run.
 - **Responsive layout:** the page scrolls on short screens, the information cards share the width equally so long text wraps, the action grid switches between 2, 3 and 4 columns depending on screen width, and on web or tablet the content is centered with a maximum width.
 - **Tested:** widget tests cover the identity cards, card colors, SnackBars, and layout at four screen sizes.
 
@@ -20,7 +23,10 @@ A Flutter mobile app for my personal portfolio. It is the mobile companion to th
 
 - [Flutter](https://flutter.dev) 3.50 (stable), Dart 3.14
 - [`material_ui`](https://pub.dev/packages/material_ui), the Material widgets package that replaces the deprecated `package:flutter/material.dart` import from Flutter 3.50 onwards
-- `flutter_test` and `flutter_lints` for testing and static analysis
+- `http` (API calls), `provider` (shares `ApiClient` and `AuthState` across screens), `json_annotation` + `json_serializable` + `build_runner` (generated JSON code for the `Experience` model)
+- `flutter_test` and `flutter_lints` for testing and static analysis; `package:http/testing.dart` `MockClient` so tests never call the real server
+- GitHub Actions with [`very_good_workflows`](https://github.com/VeryGoodOpenSource/very_good_workflows)
+- Backend: my Django portfolio ([beccaovels/myportofolio](https://github.com/beccaovels/myportofolio)) with Django REST Framework token auth and `django-cors-headers`
 
 ## Getting Started
 
@@ -36,24 +42,80 @@ A Flutter mobile app for my personal portfolio. It is the mobile companion to th
 git clone https://github.com/beccaovels/myportofolio_mobile.git
 cd myportofolio_mobile
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs   # generates lib/models/*.g.dart
 flutter run -d chrome      # or: flutter run (picks a connected device)
 ```
+
+`*.g.dart` files are generated, so they are not committed. Run `build_runner` again after changing a model.
+
+### Run against the Django backend
+
+The API address comes from `--dart-define=API_BASE_URL=...` (see `lib/config.dart`). The default is `http://10.0.2.2:8000`, which is my PC as seen from the Android emulator.
+
+| Target | Terminal 1 (Django repo) | Terminal 2 (this repo) |
+|---|---|---|
+| Android emulator | `python manage.py runserver` | `flutter run` |
+| Chrome | `python manage.py runserver` | `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000` |
+| Physical Android phone (USB) | `python manage.py runserver` | `adb reverse tcp:8000 tcp:8000`, then `flutter run --dart-define=API_BASE_URL=http://localhost:8000` |
+| Deployed backend (PWS) | (already running) | `flutter run --dart-define=API_BASE_URL=https://rebecca-love-myportofolio.pws.cs.ui.ac.id` |
+
+Viewing experiences needs no login. To add one, log in with the Django **superuser** account (only the portfolio owner can create experiences).
+
+| Method | Path | Auth | Used for |
+|---|---|---|---|
+| GET | `/api/v1/experience/` | Public | Experience list |
+| POST | `/api/v1/experience/` | `Authorization: Token <key>` (superuser) | Add Experience form |
+| POST | `/api/v1/auth/token/` | Public | Login (username + password -> token) |
+| POST | `/api/v1/auth/logout/` | `Authorization: Token <key>` | Logout (revokes the token, 204) |
 
 ### Quality checks
 
 ```bash
-flutter analyze   # expected: No issues found!
-flutter test      # expected: All tests passed!
+dart format --set-exit-if-changed lib test   # expected: 0 changed
+flutter analyze                              # expected: No issues found!
+flutter test                                 # expected: All tests passed!
 ```
+
+### CI/CD
+
+`.github/workflows/main.yaml` runs on every pull request and on pushes to `main`:
+
+1. **build** (CI): `very_good_workflows` runs `build_runner`, checks formatting, runs `flutter analyze` and the tests with coverage.
+2. **build_apk** (CD): only after **build** passes, builds `app-release.apk` pointing at the deployed backend and uploads it as the **app-release-apk** artifact (Actions tab -> the run -> Artifacts).
+
+The APK's backend comes from the repository variable `API_BASE_URL` (Settings -> Secrets and variables -> Actions -> Variables), set to `https://rebecca-love-myportofolio.pws.cs.ui.ac.id`.
 
 ## Project Structure
 
 ```
 lib/
-├── main.dart        # Entry point: runApp + MaterialApp (theme, home screen)
-└── menu.dart        # Home screen: MyHomePage, InfoCard, ItemHomepage, ItemCard
+├── main.dart                        # Entry point: MultiProvider (ApiClient, AuthState) + MaterialApp
+├── config.dart                      # API_BASE_URL (--dart-define, default http://10.0.2.2:8000)
+├── models/
+│   └── experience.dart              # @JsonSerializable Experience (+ generated experience.g.dart)
+├── services/
+│   ├── api_client.dart              # HTTP calls: list/create experience, token login/logout, ApiException
+│   └── auth_state.dart              # ChangeNotifier holding the login token
+├── screens/
+│   ├── menu.dart                    # Home screen: MyHomePage, InfoCard, ItemHomepage
+│   ├── experience_list_screen.dart  # FutureBuilder list with loading/error/empty states
+│   ├── experience_detail_screen.dart
+│   ├── experience_form.dart         # Add Experience form, POSTs with the token
+│   ├── education_form.dart          # Add Education form (Assignment 8, local only)
+│   └── login_screen.dart
+├── widgets/
+│   ├── left_drawer.dart             # Shared drawer with Login/Logout
+│   ├── project_card.dart            # ItemCard: colored action card on the home screen
+│   └── auth_guard.dart              # ensureLoggedIn(): opens Login when needed
+└── utils/
+    └── form_validators.dart         # Reusable validators + date formatting
 test/
-└── widget_test.dart # Widget tests for the home screen
+├── test_helpers.dart                # Fake Django backend (MockClient)
+├── widget_test.dart                 # Home screen
+├── education_form_test.dart         # Education form
+├── api_client_test.dart             # Experience model, ApiClient, AuthState
+└── experience_test.dart             # List/detail states, login guard, form POST, drawer
+.github/workflows/main.yaml          # CI (very_good_workflows) + release APK artifact
 ```
 
 ## Weekly Progress
@@ -63,6 +125,7 @@ test/
 | Tutorial 08 | Basic Flutter | Project setup, split `menu.dart` from `main.dart`, `MyHomePage` as a `StatelessWidget`, `InfoCard` and `ItemCard` |
 | Assignment 7 | Basic Flutter for my own portfolio | Own identity, a distinct color per action card, responsive layout, `material_ui` migration, docstrings, widget tests |
 | Tutorial 09 / Assignment 8 | Navigation, layouts, forms and input elements | *Coming next* |
+| Tutorial 10 | Backend integration, authentication and CI/CD | Experience list/detail from the Django API, token login with `AuthState` + `provider`, login guard on Add Experience, form POST with `Authorization: Token`, GitHub Actions CI and release APK, `MockClient` tests |
 
 ### Assignment 7
 

@@ -1,8 +1,12 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/screens/education_form.dart';
-import 'package:myportofolio_mobile/screens/project_form.dart';
+import 'package:myportofolio_mobile/screens/experience_form.dart';
+import 'package:myportofolio_mobile/screens/experience_list_screen.dart';
+import 'package:myportofolio_mobile/services/auth_state.dart';
+import 'package:myportofolio_mobile/widgets/auth_guard.dart';
 import 'package:myportofolio_mobile/widgets/project_card.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
+import 'package:provider/provider.dart';
 
 /// Home screen of MyPortfolio Mobile.
 ///
@@ -24,23 +28,64 @@ class MyHomePage extends StatelessWidget {
   static const String kelas = "KI";
 
   /// Action buttons shown in the grid, each with its own background color.
-  /// Declared `const` so the list is created once at compile time.
+  /// Declared `const` so the list is created once at compile time (the
+  /// actions are static method tear-offs, which are compile-time constants).
   static const List<ItemHomepage> items = [
-    ItemHomepage("View Projects", Icons.folder, Colors.blue),
     ItemHomepage(
-      "Add Project",
+      "View Experience",
+      Icons.work,
+      Colors.blue,
+      action: _openExperienceList,
+    ),
+    ItemHomepage(
+      "Add Experience",
       Icons.add_circle,
       Colors.green,
-      destination: ProjectFormPage(),
+      action: _openExperienceForm,
     ),
     ItemHomepage(
       "Add Education",
       Icons.school,
       Colors.teal,
-      destination: EducationFormPage(),
+      action: _openEducationForm,
     ),
-    ItemHomepage("Logout", Icons.logout, Colors.red),
+    ItemHomepage("Logout", Icons.logout, Colors.red, action: _logout),
   ];
+
+  /// Public: anyone can browse the experience list.
+  static Future<void> _openExperienceList(BuildContext context) =>
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ExperienceListScreen()),
+      );
+
+  /// Protected: asks the user to log in first if there is no token.
+  static Future<void> _openExperienceForm(BuildContext context) =>
+      pushIfLoggedIn(context, const ExperienceFormPage());
+
+  /// Local form from Assignment 8 (not connected to the API yet).
+  static Future<void> _openEducationForm(BuildContext context) =>
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const EducationFormPage()),
+      );
+
+  /// Revokes the token and tells the user what happened.
+  static Future<void> _logout(BuildContext context) async {
+    final auth = context.read<AuthState>();
+    final messenger = ScaffoldMessenger.of(context);
+    final wasLoggedIn = auth.isLoggedIn;
+    await auth.logout();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            wasLoggedIn ? 'You have been logged out.' : "You're not logged in.",
+          ),
+        ),
+      );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,9 +224,9 @@ class InfoCard extends StatelessWidget {
 
 /// Data model for one action button on the home screen.
 ///
-/// Keeping the [color] and [destination] here (instead of if-else logic
-/// on the name inside [ItemCard]) means adding a new button only requires
-/// a new entry in [MyHomePage.items].
+/// Keeping the [color] and [action] here (instead of if-else logic on the
+/// name inside [ItemCard]) means adding a new button only requires a new
+/// entry in [MyHomePage.items].
 class ItemHomepage {
   /// Label shown on the card and used in the SnackBar message.
   final String name;
@@ -192,9 +237,12 @@ class ItemHomepage {
   /// Background color of the card; each item uses a distinct color.
   final Color color;
 
-  /// Screen opened with `Navigator.push` when the card is tapped, or
-  /// `null` if the card only shows a SnackBar.
-  final Widget? destination;
+  /// What happens when the card is tapped (open a screen, open a guarded
+  /// screen, log out, ...), or `null` if the card only shows a SnackBar.
+  final ItemAction? action;
 
-  const ItemHomepage(this.name, this.icon, this.color, {this.destination});
+  const ItemHomepage(this.name, this.icon, this.color, {this.action});
 }
+
+/// Callback run by an [ItemCard]; receives the card's [BuildContext].
+typedef ItemAction = Future<void> Function(BuildContext context);

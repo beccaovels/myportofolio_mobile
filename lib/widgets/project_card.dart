@@ -4,9 +4,9 @@ import 'package:myportofolio_mobile/screens/menu.dart';
 /// A tappable, colored card that renders one [ItemHomepage].
 ///
 /// Tapping it replaces any visible SnackBar with
-/// `"You pressed the [name] button!"`, using the item's name. If the item
-/// has a [ItemHomepage.destination] (e.g. the Add Project or Add Education
-/// form), that screen is also opened on top of the home screen.
+/// `"You pressed the [name] button!"`, using the item's name, then runs the
+/// item's [ItemHomepage.action] (open a screen with `Navigator.push`, open a
+/// login-protected screen, or log out).
 class ItemCard extends StatelessWidget {
   /// The action this card represents.
   final ItemHomepage item;
@@ -27,15 +27,9 @@ class ItemCard extends StatelessWidget {
               SnackBar(content: Text("You pressed the ${item.name} button!")),
             );
 
-          // push (not pushReplacement) keeps the home screen underneath,
-          // so the system Back button returns to it.
-          final destination = item.destination;
-          if (destination != null) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => destination),
-            );
-          }
+          // Screens are opened with push (not pushReplacement), so the home
+          // screen stays underneath and the system Back button returns to it.
+          item.action?.call(context);
         },
         child: Container(
           padding: const EdgeInsets.all(8),
